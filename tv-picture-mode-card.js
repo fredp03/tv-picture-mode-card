@@ -5,7 +5,7 @@ const html = LitElement.prototype.html;
 const css = LitElement.prototype.css;
 
 console.info(
-  `%c TV-PICTURE-MODE-CARD %c v1.0.2 `,
+  `%c TV-PICTURE-MODE-CARD %c v1.0.3 `,
   "color: white; background: #555; font-weight: bold;",
   "color: white; background: #007acc; font-weight: bold;"
 );
@@ -14,8 +14,13 @@ class TvPictureModeCard extends LitElement {
   static properties = {
     hass: {},
     config: {},
-    _optimisticMode: { state: true },
   };
+
+  constructor() {
+    super();
+    this._optimisticMode = null;
+    this._optimisticTimeout = null;
+  }
 
   static styles = css`
     :host {
@@ -114,10 +119,6 @@ class TvPictureModeCard extends LitElement {
     }
 
     const actualMode = entity.attributes[this.config.attribute];
-    // Clear optimistic mode once the actual state catches up
-    if (this._optimisticMode && actualMode === this._optimisticMode) {
-      this._optimisticMode = null;
-    }
     // Use optimistic mode for instant UI feedback, fallback to actual mode
     const currentMode = this._optimisticMode || actualMode;
     const modeList = entity.attributes.picture_mode_list || [
@@ -156,8 +157,20 @@ class TvPictureModeCard extends LitElement {
       return;
     }
 
+    // Clear any existing timeout
+    if (this._optimisticTimeout) {
+      clearTimeout(this._optimisticTimeout);
+    }
+
     // Set optimistic mode immediately for instant UI feedback
     this._optimisticMode = mode;
+    this.requestUpdate();
+
+    // Keep optimistic mode for 45 seconds to outlast HA state delays
+    this._optimisticTimeout = setTimeout(() => {
+      this._optimisticMode = null;
+      this.requestUpdate();
+    }, 45000);
 
     this.hass.callService("samsungtv_smart", "select_picture_mode", {
       entity_id: entity,
