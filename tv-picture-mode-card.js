@@ -5,7 +5,7 @@ const html = LitElement.prototype.html;
 const css = LitElement.prototype.css;
 
 console.info(
-  `%c TV-PICTURE-MODE-CARD %c v1.0.1 `,
+  `%c TV-PICTURE-MODE-CARD %c v1.0.2 `,
   "color: white; background: #555; font-weight: bold;",
   "color: white; background: #007acc; font-weight: bold;"
 );
@@ -14,6 +14,7 @@ class TvPictureModeCard extends LitElement {
   static properties = {
     hass: {},
     config: {},
+    _optimisticMode: { state: true },
   };
 
   static styles = css`
@@ -112,7 +113,13 @@ class TvPictureModeCard extends LitElement {
       </div>`;
     }
 
-    const currentMode = entity.attributes[this.config.attribute];
+    const actualMode = entity.attributes[this.config.attribute];
+    // Clear optimistic mode once the actual state catches up
+    if (this._optimisticMode && actualMode === this._optimisticMode) {
+      this._optimisticMode = null;
+    }
+    // Use optimistic mode for instant UI feedback, fallback to actual mode
+    const currentMode = this._optimisticMode || actualMode;
     const modeList = entity.attributes.picture_mode_list || [
       "Dynamic",
       "Standard",
@@ -142,12 +149,15 @@ class TvPictureModeCard extends LitElement {
 
   _selectMode(mode) {
     const entity = this.config.entity;
-    const currentMode =
+    const currentMode = this._optimisticMode || 
       this.hass.states[entity].attributes[this.config.attribute];
 
     if (mode === currentMode) {
       return;
     }
+
+    // Set optimistic mode immediately for instant UI feedback
+    this._optimisticMode = mode;
 
     this.hass.callService("samsungtv_smart", "select_picture_mode", {
       entity_id: entity,
