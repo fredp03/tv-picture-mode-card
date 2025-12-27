@@ -5,7 +5,7 @@ const html = LitElement.prototype.html;
 const css = LitElement.prototype.css;
 
 console.info(
-  `%c TV-PICTURE-MODE-CARD %c v1.0.0 `,
+  `%c TV-PICTURE-MODE-CARD %c v1.0.1 `,
   "color: white; background: #555; font-weight: bold;",
   "color: white; background: #007acc; font-weight: bold;"
 );
@@ -149,19 +149,10 @@ class TvPictureModeCard extends LitElement {
       return;
     }
 
-    this.hass.callService("media_player", "select_source", {
-      entity_id: entity,
-      source: mode,
-    });
-
-    // Alternative: Some Samsung TV integrations use a different service
-    // Uncomment below if the above doesn't work for your setup
-    /*
     this.hass.callService("samsungtv_smart", "select_picture_mode", {
       entity_id: entity,
       picture_mode: mode,
     });
-    */
   }
 
   getCardSize() {
